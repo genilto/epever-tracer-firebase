@@ -4,11 +4,16 @@
 //needed for library
 #include <Timer.h>       //https://github.com/JChristensen/Timer
 #include <DNSServer.h>
+#include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
+#include <ArduinoOTA.h>
+#include <ModbusMaster.h> //https://github.com/4-20ma/ModbusMaster
+#include "structs.h"
+#include "debug.h"
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
-#include <ModbusMaster.h> //https://github.com/4-20ma/ModbusMaster
+#define LED_PIN LED_BUILTIN //D4 //GPIO2
 
 void AddressRegistry_2000();
 void AddressRegistry_200C();
@@ -32,138 +37,6 @@ void AddressRegistry_331B();
 ModbusMaster node;
 uint8_t result;
 
-//rated data - input register (16 bit word readonly)
-struct rated_data
-{
-  float pvVoltage;
-  float pvCurrent;
-  int16_t pvPower;
-  float batteryVoltage;
-  float batteryCurrent;
-  int16_t batteryPower;
-  uint8_t chargingMode; //0000H Connect/disconnect, 0001H PWM, 0002H MPPT
-  float loadCurrent;
-} ratedData;
-
-//realtime data - input register (16 bit word readonly)
-struct realtime_data
-{
-  float pvVoltage;
-  float pvCurrent;
-  int16_t pvPower;
-  float batteryVoltage;
-  float batteryChargingCurrent;
-  int16_t batteryChargingPower;
-  float loadVoltage;
-  float loadCurrent;
-  int16_t loadPower;
-  float batteryTemp;
-  float equipmentTemp;
-  float heatsinkTemp;
-  uint8_t batterySoC;
-  float batteryRemoteTemp;
-  uint16_t batteryRatedPower; //1200,2400 for 12/12v
-} realtimeData;
-
-//realtime status - input register (16 bit word readonly)
-struct realtime_status
-{
-  uint16_t batteryStatus;
-  uint16_t chargeEquipmentStatus;
-  uint16_t dischargeEquipmentStatus;
-} realtimeStatus;
-
-//statistical parameters - input register (16 bit word readonly)
-struct statistical_parameters
-{
-  float todayMaxPvVoltage;
-  float todayMinPvVoltage;
-  float todayMaxBattVoltage;
-  float todayMinBattVoltage;
-  float todayConsumedEnergy;
-  float monthConsumedEnergy;
-  float yearConsumedEnergy;
-  float totalConsumedEnergy;
-  float todayGeneratedEnergy;
-  float monthGeneratedEnergy;
-  float yearGeneratedEnergy;
-  float totalGeneratedEnergy;
-  float CO2reduction;
-  float batteryCurrent; //net, charging minus discharge
-  float batteryTemp;
-  float ambientTemp;
-} statisticalParameters;
-
-//setting_parameters - holding register (16 bit word read-write)
-struct setting_parameters
-{
-  float batteryType;
-  float ratedCapacity;
-  int temperatureCompensation;
-  float highVoltageDisconnect;
-  float chargeLimitVoltage;
-  float overVoltageReconnect;
-  float equalisationVoltage;
-  float boostVoltage;
-  float floatVoltage;
-  float boostReconnectVoltage;
-  float lowVoltageReconnect;
-  float underVoltageRecover;
-  float lowVoltageDisconnect;
-  float realTimeClock;
-  int equalisationChargingCycle;
-  float batteryTemperatureWarningUpperLimit;
-  float batteryTemperatureWarningLowerLimit;
-  float controllerInnerTemperatureUpperLimit;
-  float controllerInnerTemperatureUpperLimitRecovery;
-  float powerComponentTemperatureUpperLimit;
-  float powerComponentTemperatureUpperLimitRecover;
-  float lineImpedance;
-  float nightTimeThresholdVoltage;
-  float lightSignalStartupDelayTime;
-  float dayTimeThresholdVoltage;
-  float lightSignalTurnOffDelayTime;
-  float loadControllingMode;
-  float workingTimeLength1;
-  float workingTimeLength2;
-  int turnOnTiming1_H;
-  int turnOnTiming1_M;
-  int turnOnTiming1_S;
-  int turnOffTiming1_H;
-  int turnOffTiming1_M;
-  int turnOffTiming1_S;
-  int turnOnTiming2_H;
-  int turnOnTiming2_M;
-  int turnOnTiming2_S;
-  int turnOffTiming2_H;
-  int turnOffTiming2_M;
-  int turnOffTiming2_S;
-  float lengthOfNight;
-  int batteryRatedVoltageCode;       //0=auto, 1=12V, 2=24V
-  bool loadTimingControl;            //0=1 timer,1=2 timer
-  bool defaultLoadOnOffInManualMode; //0=OFF, 1=ON
-  int equaliseDuration;              //minute
-  int boostDuration;                 //minute
-  int dischargingPercentage;         //$
-  int chargingPercentage;            //%
-  bool batteryManagementMode;        //0=voltComp, 1=SoC
-} settingParameters;
-
-//coil / switch values - coils (single bit read-write)
-struct switch_value
-{
-  bool manualControl;
-  bool loadTest;
-  bool forceLoad;
-} switchValues;
-
-//discrete_input - discretes input (single bit readonly)
-struct discrete_input
-{
-  bool overTemp;
-  bool dayNight;
-} discreteInput;
-
 bool rs485DataReceived = true;
 
 Timer timer;
@@ -176,8 +49,8 @@ void getRealtimeStatus();
 void getStatisticalData();
 void getCoils();
 void getDiscrete();
-void setLoadOn();
-void setLoadOff();
+//void setLoadOn();
+//void setLoadOff();
 
 // tracer requires no handshaking
 void preTransmission() {}
@@ -211,29 +84,93 @@ RegistryList Registries = {
 
 // keep log of where we are
 uint8_t currentRegistryNumber = 0;
-
 ESP8266WebServer server(80);
 
-void info();
-
 void setup() {
-    // put your setup code here, to run once:
     Serial.begin(115200);
+    
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, HIGH); //inverted, off
 
-    //WiFiManager
-    //Local intialization. Once its business is done, there is no need to keep it around
+    // WiFiManager
     WiFiManager wifiManager;
-    //reset saved settings
-    //wifiManager.resetSettings();
-    wifiManager.autoConnect("AutoConnectAP");
+    wifiManager.setDebugOutput(debugOn);
+    wifiManager.autoConnect("EpeverTracer");
     
     //if you get here you have connected to the WiFi
     DebugPrintln("connected...yeey :)");
 
+    // Start the mDNS responder for esp8266.local
+    if (MDNS.begin(HOSTNAME))
+    {
+        DebugPrint("mDNS responder started with hostname ");
+    }
+    else
+    {
+        DebugPrint("Error setting up mDNS responder with hostname ");
+    }
+    DebugPrintln(HOSTNAME);
+
+    ArduinoOTA.setHostname(HOSTNAME);
+
+    ArduinoOTA.onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+      {
+        type = "sketch";
+      }
+      else
+      { // U_SPIFFS
+        type = "filesystem";
+      }
+      DebugPrintln("Start updating " + type);
+    });
+
+    ArduinoOTA.onEnd([]() {
+      DebugPrintln("\nEnd of update");
+      digitalWrite(LED_PIN, HIGH);
+    });
+
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      int percentageComplete = (progress / (total / 100));
+      DebugPrintf("Progress: %u%%\r", percentageComplete);
+      digitalWrite(LED_PIN, percentageComplete % 2);
+    });
+
+    ArduinoOTA.onError([](ota_error_t error) {
+      DebugPrintf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR)
+      {
+        DebugPrintln("Auth Failed");
+      }
+      else if (error == OTA_BEGIN_ERROR)
+      {
+        DebugPrintln("Begin Failed");
+      }
+      else if (error == OTA_CONNECT_ERROR)
+      {
+        DebugPrintln("Connect Failed");
+      }
+      else if (error == OTA_RECEIVE_ERROR)
+      {
+        DebugPrintln("Receive Failed");
+      }
+      else if (error == OTA_END_ERROR)
+      {
+        DebugPrintln("End Failed");
+      }
+    });
+
+    ArduinoOTA.begin();
+
+    DebugPrint("ArduinoOTA running. ");
+    DebugPrint("New IP address: ");
+    DebugPrintln(WiFi.localIP());
+
     server.onNotFound([]() {                              // If the client requests any URI
         server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
     });
-
+    
     // Routes
     server.on("/", info);
     server.on("/getRatedData", getRatedData);
@@ -242,8 +179,9 @@ void setup() {
     server.on("/getStatisticalData", getStatisticalData);
     server.on("/getCoils", getCoils);
     server.on("/getDiscrete", getDiscrete);
-    server.on("/setLoadOn", setLoadOn);
-    server.on("/setLoadOff", setLoadOff);
+    //server.on("/setLoadOn", setLoadOn);
+    //server.on("/setLoadOff", setLoadOff);
+    //server.on("/reset", reset);
 
     server.begin(); // Actually start the server
     DebugPrintln("HTTP server started");
@@ -263,10 +201,19 @@ void setup() {
 }
 
 void loop() {
+    MDNS.update();
+    ArduinoOTA.handle();
     timer.update();
     server.handleClient();
     delay(100);
 }
+/*
+void reset() {
+    // Reset saved settings
+    wifiManager.resetSettings();
+    server.send(200, "application/json",
+              "{\"success\":true}");
+}*/
 
 String htmlHeader(String title)
 {
@@ -288,27 +235,30 @@ void info()
   int systemUpTimeDy = (millisecs / (60 * 60 * 24));
 
   // compose info string
-  String info = htmlHeader("Info") + "<h1>Info</h1>" +
+  String info = htmlHeader("Tracer Reader Info") + "<h1>Tracer Reader Info</h1>" +
                 "<b>ESP8266 Core Version:</b> " + ESP.getCoreVersion() + "</br>" +
-                "<b>ESP8266 SDK Version:</b> " + ESP.getSdkVersion() + "</br></br>" +
-                "<b>Reset Reason:</b> " + ESP.getResetReason() + "</br></br>" +
-                "<b>Free Heap:</b> " + ESP.getFreeHeap() + "bytes (" +
-                ESP.getHeapFragmentation() + "% fragmentation)</br></br>" +
+                "<b>ESP8266 SDK Version:</b> " + ESP.getSdkVersion() + "</br>" +
                 "<b>ESP8266 Chip ID:</b> " + ESP.getChipId() + "</br>" +
                 "<b>ESP8266 Flash Chip ID:</b> " + ESP.getFlashChipId() + "</br></br>" +
+
+                "<b>Free Heap:</b> " + ESP.getFreeHeap() + "bytes (" +
+                ESP.getHeapFragmentation() + "% fragmentation)</br>" +
                 "<b>Flash Chip Size:</b> " + ESP.getFlashChipRealSize() + " bytes (" +
                 ESP.getFlashChipSize() + " bytes seen by SDK) </br>" +
                 "<b>Sketch Size:</b> " + ESP.getSketchSize() + " bytes used of " +
-                ESP.getFreeSketchSpace() + " bytes available</br>" +
+                ESP.getFreeSketchSpace() + " bytes available</br></br>" +
+
                 "<b>WiFi SSID:</b> " + WiFi.SSID() + "</br>" +
-                "<b>WiFi RSSI:</b> " + WiFi.RSSI() + "dBm</br></br>" +
+                "<b>WiFi RSSI:</b> " + WiFi.RSSI() + "dBm</br>" +
+                "<b>WiFi Local IP:</b> " + WiFi.localIP().toString() + "</br></br>" +
+
+                "<b>Reset Reason:</b> " + ESP.getResetReason() + "</br>" +
                 "<b>System Uptime:</b> " + String(systemUpTimeDy) + " day(s), " +
                 systemUpTimeHr + " hour(s), " + systemUpTimeMn + " minute(s), " +
                 systemUpTimeSc + " second(s)" + htmlFooter();
 
-  server.send(200, "text/html", info);
+    server.send(200, "text/html", info);
 }
-
 
 void getRatedData()
 {
@@ -386,7 +336,7 @@ void getDiscrete()
               "{\"overTemp\":" + String(discreteInput.overTemp) +
                   ", \"dayNight\":" + String(discreteInput.dayNight) + "}");
 }
-
+/*
 void setLoadOn() {
     server.send(200, "application/json",
               "{\"success\":" + String(setOutputLoadPower(1)) + "}");
@@ -396,7 +346,7 @@ void setLoadOff() {
     server.send(200, "application/json",
               "{\"success\":" + String(setOutputLoadPower(0)) + "}");
 }
-
+*/
 // reads manual control state
 void readManualCoil()
 {
