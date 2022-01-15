@@ -1,0 +1,27 @@
+version: "3"
+
+services:
+  emqx:
+    image: emqx/emqx
+    restart: always
+    ports:
+      - 1883:1883
+      - 18083:18083
+      - 8081:8081
+    environment:
+      - "EMQX_NAME=emqx"
+      - "EMQX_HOST=localhost"
+      #- "EMQX_CLUSTER__DISCOVERY=static"
+      #- "EMQX_CLUSTER__STATIC__SEEDS=emqx@node1.emqx.io, emqx@node2.emqx.io"
+    volumes:
+      - vol-emqx-data:/opt/emqx/data
+      - vol-emqx-etc:/opt/emqx/etc
+      - vol-emqx-log:/opt/emqx/log
+
+volumes:
+  vol-emqx-data:
+    name: emqx-data
+  vol-emqx-etc:
+    name: emqx-etc
+  vol-emqx-log:
+    name: emqx-log

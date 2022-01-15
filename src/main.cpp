@@ -1,19 +1,18 @@
 #include <Arduino.h>
-#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-
-//needed for library
-#include <Timer.h>       //https://github.com/JChristensen/Timer
+#include <ESP8266WiFi.h>       //https://github.com/esp8266/Arduino
 #include <DNSServer.h>
-#include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
-#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
-#include <ArduinoOTA.h>
-#include <ModbusMaster.h> //https://github.com/4-20ma/ModbusMaster
-#include "structs.h"
+
+#include <Timer.h>             //https://github.com/JChristensen/Timer
+#include <WiFiManager.h>       //https://github.com/tzapu/WiFiManager
+#include <ModbusMaster.h>      //https://github.com/4-20ma/ModbusMaster
+
+#include "controller/OTAUpdateController.h"
+//#include "controller/MqttController.h"
+#include "domain/TracerData.h"
 #include "debug.h"
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
-#define LED_PIN LED_BUILTIN //D4 //GPIO2
 
 void AddressRegistry_2000();
 void AddressRegistry_200C();
@@ -49,6 +48,7 @@ void getRealtimeStatus();
 void getStatisticalData();
 void getCoils();
 void getDiscrete();
+void reset();
 //void setLoadOn();
 //void setLoadOff();
 
@@ -62,7 +62,7 @@ uint8_t setOutputLoadPower(uint8_t state);
 
 void updateNextRegistryEntry();
 
-// a list of the regisities to query in order
+// a list of the registries to query in order
 typedef void (*RegistryList[])();
 RegistryList Registries = {
     AddressRegistry_2000,
@@ -80,92 +80,25 @@ RegistryList Registries = {
     AddressRegistry_3310,
     AddressRegistry_331B,
     readManualCoil,
-    readLoadTestAndForceLoadCoil};
+    readLoadTestAndForceLoadCoil
+};
 
 // keep log of where we are
 uint8_t currentRegistryNumber = 0;
+OTAUpdateController OTAUpdate;
 ESP8266WebServer server(80);
+//MqttController mqttController;
 
 void setup() {
-    Serial.begin(115200);
+    DebugBegin(115200);
     
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, HIGH); //inverted, off
-
     // WiFiManager
     WiFiManager wifiManager;
     wifiManager.setDebugOutput(debugOn);
-    wifiManager.autoConnect("EpeverTracer");
-    
-    //if you get here you have connected to the WiFi
-    DebugPrintln("connected...yeey :)");
+    wifiManager.autoConnect(WIFI_CONFIG_AP_NAME);
 
-    // Start the mDNS responder for esp8266.local
-    if (MDNS.begin(HOSTNAME))
-    {
-        DebugPrint("mDNS responder started with hostname ");
-    }
-    else
-    {
-        DebugPrint("Error setting up mDNS responder with hostname ");
-    }
-    DebugPrintln(HOSTNAME);
-
-    ArduinoOTA.setHostname(HOSTNAME);
-
-    ArduinoOTA.onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-      {
-        type = "sketch";
-      }
-      else
-      { // U_SPIFFS
-        type = "filesystem";
-      }
-      DebugPrintln("Start updating " + type);
-    });
-
-    ArduinoOTA.onEnd([]() {
-      DebugPrintln("\nEnd of update");
-      digitalWrite(LED_PIN, HIGH);
-    });
-
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-      int percentageComplete = (progress / (total / 100));
-      DebugPrintf("Progress: %u%%\r", percentageComplete);
-      digitalWrite(LED_PIN, percentageComplete % 2);
-    });
-
-    ArduinoOTA.onError([](ota_error_t error) {
-      DebugPrintf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR)
-      {
-        DebugPrintln("Auth Failed");
-      }
-      else if (error == OTA_BEGIN_ERROR)
-      {
-        DebugPrintln("Begin Failed");
-      }
-      else if (error == OTA_CONNECT_ERROR)
-      {
-        DebugPrintln("Connect Failed");
-      }
-      else if (error == OTA_RECEIVE_ERROR)
-      {
-        DebugPrintln("Receive Failed");
-      }
-      else if (error == OTA_END_ERROR)
-      {
-        DebugPrintln("End Failed");
-      }
-    });
-
-    ArduinoOTA.begin();
-
-    DebugPrint("ArduinoOTA running. ");
-    DebugPrint("New IP address: ");
-    DebugPrintln(WiFi.localIP());
+    // Start MDNS and OTA Updates
+    OTAUpdate.begin();
 
     server.onNotFound([]() {                              // If the client requests any URI
         server.send(404, "text/plain", "404: Not Found"); // otherwise, respond with a 404 (Not Found) error
@@ -181,7 +114,7 @@ void setup() {
     server.on("/getDiscrete", getDiscrete);
     //server.on("/setLoadOn", setLoadOn);
     //server.on("/setLoadOff", setLoadOff);
-    //server.on("/reset", reset);
+    server.on("/reset", reset);
 
     server.begin(); // Actually start the server
     DebugPrintln("HTTP server started");
@@ -189,7 +122,7 @@ void setup() {
     node.begin(1, Serial);
     node.preTransmission(preTransmission);
     node.postTransmission(postTransmission);
-
+    
     DebugPrintln("Starting timed actions...");
     timer.every(600L, updateNextRegistryEntry);
 
@@ -201,19 +134,23 @@ void setup() {
 }
 
 void loop() {
-    MDNS.update();
-    ArduinoOTA.handle();
+    OTAUpdate.handle();
     timer.update();
     server.handleClient();
+    //mqttController.loop();
     delay(100);
 }
-/*
+
 void reset() {
     // Reset saved settings
-    wifiManager.resetSettings();
-    server.send(200, "application/json",
-              "{\"success\":true}");
-}*/
+    //wifiManager.resetSettings();
+    DebugPrintln("Reseting Settings...");
+    WiFi.disconnect(true);
+    ESP.eraseConfig();
+    DebugPrintln("Rebooting...");
+    delay(2000);
+    ESP.reset();
+}
 
 String htmlHeader(String title)
 {
@@ -336,17 +273,6 @@ void getDiscrete()
               "{\"overTemp\":" + String(discreteInput.overTemp) +
                   ", \"dayNight\":" + String(discreteInput.dayNight) + "}");
 }
-/*
-void setLoadOn() {
-    server.send(200, "application/json",
-              "{\"success\":" + String(setOutputLoadPower(1)) + "}");
-}
-
-void setLoadOff() {
-    server.send(200, "application/json",
-              "{\"success\":" + String(setOutputLoadPower(0)) + "}");
-}
-*/
 // reads manual control state
 void readManualCoil()
 {
