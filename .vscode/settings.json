@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "functional": "cpp",
+        "*.tcc": "cpp",
+        "random": "cpp",
+        "ranges": "cpp"
+    }
+}

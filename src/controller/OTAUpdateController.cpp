@@ -1,7 +1,3 @@
-#include <Arduino.h>
-#include <ESP8266mDNS.h>
-#include <ArduinoOTA.h>
-#include "debug.h"
 #include "controller/OTAUpdateController.h"
 
 OTAUpdateController::OTAUpdateController () 

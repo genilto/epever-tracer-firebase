@@ -4,7 +4,7 @@
 #define TRACER_DATA_H
 
 //rated data - input register (16 bit word readonly)
-struct rated_data
+struct RatedData
 {
     float pvVoltage;
     float pvCurrent;
@@ -14,10 +14,10 @@ struct rated_data
     int16_t batteryPower;
     uint8_t chargingMode; //0000H Connect/disconnect, 0001H PWM, 0002H MPPT
     float loadCurrent;
-} ratedData;
+};
 
 //realtime data - input register (16 bit word readonly)
-struct realtime_data
+struct RealtimeData
 {
     float pvVoltage;
     float pvCurrent;
@@ -34,18 +34,18 @@ struct realtime_data
     uint8_t batterySoC;
     float batteryRemoteTemp;
     uint16_t batteryRatedPower; //1200,2400 for 12/12v
-} realtimeData;
+};
 
 //realtime status - input register (16 bit word readonly)
-struct realtime_status
+struct RealtimeStatus
 {
     uint16_t batteryStatus;
     uint16_t chargeEquipmentStatus;
     uint16_t dischargeEquipmentStatus;
-} realtimeStatus;
+};
 
 //statistical parameters - input register (16 bit word readonly)
-struct statistical_parameters
+struct StatisticalParameters
 {
     float todayMaxPvVoltage;
     float todayMinPvVoltage;
@@ -63,10 +63,10 @@ struct statistical_parameters
     float batteryCurrent; //net, charging minus discharge
     float batteryTemp;
     float ambientTemp;
-} statisticalParameters;
+};
 
 //setting_parameters - holding register (16 bit word read-write)
-struct setting_parameters
+struct SettingParameters
 {
     float batteryType;
     float ratedCapacity;
@@ -118,21 +118,32 @@ struct setting_parameters
     int dischargingPercentage;         //$
     int chargingPercentage;            //%
     bool batteryManagementMode;        //0=voltComp, 1=SoC
-} settingParameters;
+};
 
 //coil / switch values - coils (single bit read-write)
-struct switch_value
+struct SwitchValues
 {
     bool manualControl;
     bool loadTest;
     bool forceLoad;
-} switchValues;
+};
 
 //discrete_input - discretes input (single bit readonly)
-struct discrete_input
+struct DiscreteInput
 {
     bool overTemp;
     bool dayNight;
-} discreteInput;
+};
+
+struct TracerData
+{
+    RatedData ratedData;
+    RealtimeData realtimeData;
+    RealtimeStatus realtimeStatus;
+    StatisticalParameters statisticalParameters;
+    SettingParameters settingParameters;
+    SwitchValues switchValues;
+    DiscreteInput discreteInput;
+};
 
 #endif
