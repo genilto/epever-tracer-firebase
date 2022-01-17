@@ -3,10 +3,14 @@
 TracerController::TracerController()
 {
     // Runs the updates each 600 milliseconds
-    this->_timer.setDelayTime(600);
+    this->_timer.setDelayTime(this->_delay);
 }
-void TracerController::init()
+void TracerController::begin()
 {
+    this->_node.begin(1, Serial);
+    this->_node.preTransmission([]() {});
+    this->_node.postTransmission([]() {});
+
     // Read the static information from Tracer
 }
 void TracerController::update()
@@ -16,10 +20,84 @@ void TracerController::update()
         return;
 
     // Read the realtime information from Tracer
+    this->updateNextRegistryEntry();
+
+    digitalWrite(D3, 1);
+
+    if (this->_result != this->_node.ku8MBSuccess)
+    {
+        delay(100);
+        digitalWrite(D3, 0);
+        delay(100);
+        digitalWrite(D3, 1);
+        delay(100);
+        digitalWrite(D3, 0);
+    }
 }
 
-TracerData* TracerController::getData() {
+TracerData *TracerController::getData()
+{
     return &this->_data;
+}
+
+void TracerController::updateNextRegistryEntry()
+{
+    if (this->_currentRegistryNumber == 0) {
+        this->AddressRegistry_2000();
+    }
+    if (this->_currentRegistryNumber == 1) {
+        this->AddressRegistry_200C();
+    }
+    if (this->_currentRegistryNumber == 2) {
+        this->AddressRegistry_3000();
+    }
+    if (this->_currentRegistryNumber == 3) {
+        this->AddressRegistry_300E();
+    }    
+    if (this->_currentRegistryNumber == 4) {
+        this->AddressRegistry_3100();
+    }
+    if (this->_currentRegistryNumber == 5) {
+        this->AddressRegistry_310C();
+    }
+    if (this->_currentRegistryNumber == 6) {
+        this->AddressRegistry_3110();
+    }
+    if (this->_currentRegistryNumber == 7) {
+        this->AddressRegistry_311A();
+    }
+    if (this->_currentRegistryNumber == 8) {
+        this->AddressRegistry_311D();
+    }
+    if (this->_currentRegistryNumber == 9) {
+        this->AddressRegistry_3200();
+    }
+    if (this->_currentRegistryNumber == 10) {
+        this->AddressRegistry_3300();
+    }
+    if (this->_currentRegistryNumber == 11) {
+        this->AddressRegistry_330A();
+    }
+    if (this->_currentRegistryNumber == 12) {
+        this->AddressRegistry_3310();
+    }
+    if (this->_currentRegistryNumber == 13) {
+        this->AddressRegistry_331B();
+    }
+    if (this->_currentRegistryNumber == 14) {
+        this->readManualCoil();
+    }
+    if (this->_currentRegistryNumber == 15) {
+        this->readLoadTestAndForceLoadCoil();
+    }
+
+    // better not use modulo, because after overlow it will start reading in incorrect order
+    this->_currentRegistryNumber++;
+    if (this->_currentRegistryNumber >= 15)
+    {
+        this->_currentRegistryNumber = 0;
+        this->_data.canSend = true;
+    }
 }
 
 // reads manual control state
@@ -65,19 +143,6 @@ void TracerController::readLoadTestAndForceLoadCoil()
     {
         DebugPrintln("Failed to read coils 0x05 & 0x06!");
     }
-}
-
-void TracerController::updateNextRegistryEntry()
-{
-    /*
-  Registries[currentRegistryNumber]();
-
-  // better not use modulo, because after overlow it will start reading in incorrect order
-  currentRegistryNumber++;
-  if (currentRegistryNumber >= ARRAY_SIZE(Registries))
-  {
-    currentRegistryNumber = 0;
-  }*/
 }
 
 void TracerController::AddressRegistry_2000()

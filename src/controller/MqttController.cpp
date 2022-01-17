@@ -3,7 +3,7 @@
 MqttController::MqttController()
 {
     this->MQTT.setClient(this->wifiClient);
-    this->MQTT.setServer(BROKER_MQTT, BROKER_PORT);
+    this->MQTT.setServer(MQTT_BROKER, MQTT_BROKER_PORT);
     this->MQTT.setCallback(MqttController::receiveTopic);
 }
 bool MqttController::setConnected()
@@ -30,7 +30,7 @@ void MqttController::connect()
     if (WiFi.isConnected())
     {
         //if (MQTT.connect(CLIENT_ID, USER_MQTT, PWD_MQTT))
-        if (MQTT.connect(CLIENT_ID))
+        if (MQTT.connect(DEVICE_ID))
         {
             this->setConnected();
             this->subscribeTopic("updates");

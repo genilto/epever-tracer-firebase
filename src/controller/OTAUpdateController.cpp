@@ -5,7 +5,7 @@ OTAUpdateController::OTAUpdateController ()
     pinMode(OTA_LED_PIN, OUTPUT);
     digitalWrite(OTA_LED_PIN, HIGH); //inverted, off
 
-    ArduinoOTA.setHostname(HOSTNAME);
+    ArduinoOTA.setHostname(MDNS_HOSTNAME);
     ArduinoOTA.setPassword(OTA_PASSWORD);
 
     ArduinoOTA.onStart([]() {
@@ -56,12 +56,12 @@ OTAUpdateController::OTAUpdateController ()
 void OTAUpdateController::begin() 
 {
     // Start the mDNS responder for esp8266.local
-    if (MDNS.begin(HOSTNAME)) {
+    if (MDNS.begin(MDNS_HOSTNAME)) {
         DebugPrint("mDNS responder started with hostname ");
     } else {
         DebugPrint("Error setting up mDNS responder with hostname ");
     }
-    DebugPrintln(HOSTNAME);
+    DebugPrintln(MDNS_HOSTNAME);
 
     ArduinoOTA.begin();
     DebugPrintln("ArduinoOTA running.");

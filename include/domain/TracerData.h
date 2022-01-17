@@ -144,6 +144,7 @@ struct TracerData
     SettingParameters settingParameters;
     SwitchValues switchValues;
     DiscreteInput discreteInput;
+    bool canSend = false;
 };
 
 #endif

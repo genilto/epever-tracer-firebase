@@ -6,8 +6,6 @@
 #ifndef TracerController_h
 #define TracerController_h
 
-#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
-
 /**************************************************
 * Mantém e gerencia a conexão com Mqtt
 **************************************************/
@@ -19,6 +17,8 @@ private:
     TracerData _data;
     uint8_t _result;
     uint8_t _currentRegistryNumber = 0;
+
+    uint8_t _delay = 600;
 
     void AddressRegistry_2000();
     void AddressRegistry_200C();
@@ -39,10 +39,6 @@ private:
     void AddressRegistry_330A();
     void AddressRegistry_331B();
 
-    // tracer requires no handshaking
-    void preTransmission();
-    void postTransmission();
-
     void readManualCoil();
     void readLoadTestAndForceLoadCoil();
 
@@ -51,7 +47,7 @@ private:
 public:
     TracerController();
     TracerData* getData();
-    void init();
+    void begin();
     void update();
 };
 
