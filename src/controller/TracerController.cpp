@@ -3,7 +3,7 @@
 TracerController::TracerController()
 {
     // Runs the updates each 600 milliseconds
-    this->_timer.setDelayTime(this->_delay);
+    this->_timer.setDelayTime(this->_delayTime);
 }
 void TracerController::begin()
 {

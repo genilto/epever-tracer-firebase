@@ -6,6 +6,7 @@
 //rated data - input register (16 bit word readonly)
 struct RatedData
 {
+    bool success;
     float pvVoltage;
     float pvCurrent;
     int16_t pvPower;

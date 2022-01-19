@@ -18,7 +18,7 @@ private:
     uint8_t _result;
     uint8_t _currentRegistryNumber = 0;
 
-    uint8_t _delay = 600;
+    int _delayTime = 2000;
 
     void AddressRegistry_2000();
     void AddressRegistry_200C();

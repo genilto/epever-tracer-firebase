@@ -14,6 +14,8 @@ class FirebaseController {
   private:
     TracerData *_tracerData;
     Timer _timer;
+    int _delayTime = 60000;
+    bool _canSend = false;
 
     // Define Firebase Data object
     FirebaseData _fbdo;
@@ -25,7 +27,7 @@ class FirebaseController {
   public:
     FirebaseController(TracerData &_tracerData);
     void begin();
-    void handle();
+    void update();
 };
 
 #endif
