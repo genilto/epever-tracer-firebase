@@ -16,7 +16,6 @@ private:
     Timer _timer;
     TracerData _data;
     uint8_t _result;
-    uint8_t _currentRegistryNumber = 0;
 
     int _delayTime = 2000;
 
@@ -38,6 +37,8 @@ private:
     void AddressRegistry_3310();
     void AddressRegistry_330A();
     void AddressRegistry_331B();
+
+    void AddressRegistry_9013();
 
     void readManualCoil();
     void readLoadTestAndForceLoadCoil();

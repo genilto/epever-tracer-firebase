@@ -82,7 +82,9 @@ struct SettingParameters
     float lowVoltageReconnect;
     float underVoltageRecover;
     float lowVoltageDisconnect;
-    float realTimeClock;
+    uint16_t realTimeClock;
+    uint16_t realTimeClock2;
+    uint16_t realTimeClock3;
     int equalisationChargingCycle;
     float batteryTemperatureWarningUpperLimit;
     float batteryTemperatureWarningLowerLimit;
@@ -119,6 +121,7 @@ struct SettingParameters
     int dischargingPercentage;         //$
     int chargingPercentage;            //%
     bool batteryManagementMode;        //0=voltComp, 1=SoC
+    String error;
 };
 
 //coil / switch values - coils (single bit read-write)
@@ -138,6 +141,7 @@ struct DiscreteInput
 
 struct TracerData
 {
+    uint8_t currentRegistryNumber = 0;
     RatedData ratedData;
     RealtimeData realtimeData;
     RealtimeStatus realtimeStatus;

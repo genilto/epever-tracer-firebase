@@ -8,8 +8,8 @@ TracerController::TracerController()
 void TracerController::begin()
 {
     this->_node.begin(1, Serial);
-    this->_node.preTransmission([]() {});
-    this->_node.postTransmission([]() {});
+    //this->_node.preTransmission([]() {});
+    //this->_node.postTransmission([]() {});
 
     // Read the static information from Tracer
 }
@@ -42,60 +42,63 @@ TracerData *TracerController::getData()
 
 void TracerController::updateNextRegistryEntry()
 {
-    if (this->_currentRegistryNumber == 0) {
+    if (this->_data.currentRegistryNumber == 0) {
         this->AddressRegistry_2000();
     }
-    if (this->_currentRegistryNumber == 1) {
+    if (this->_data.currentRegistryNumber == 1) {
         this->AddressRegistry_200C();
     }
-    if (this->_currentRegistryNumber == 2) {
+    if (this->_data.currentRegistryNumber == 2) {
         this->AddressRegistry_3000();
     }
-    if (this->_currentRegistryNumber == 3) {
+    if (this->_data.currentRegistryNumber == 3) {
         this->AddressRegistry_300E();
     }    
-    if (this->_currentRegistryNumber == 4) {
+    if (this->_data.currentRegistryNumber == 4) {
         this->AddressRegistry_3100();
     }
-    if (this->_currentRegistryNumber == 5) {
+    if (this->_data.currentRegistryNumber == 5) {
         this->AddressRegistry_310C();
     }
-    if (this->_currentRegistryNumber == 6) {
+    if (this->_data.currentRegistryNumber == 6) {
         this->AddressRegistry_3110();
     }
-    if (this->_currentRegistryNumber == 7) {
+    if (this->_data.currentRegistryNumber == 7) {
         this->AddressRegistry_311A();
     }
-    if (this->_currentRegistryNumber == 8) {
+    if (this->_data.currentRegistryNumber == 8) {
         this->AddressRegistry_311D();
     }
-    if (this->_currentRegistryNumber == 9) {
+    if (this->_data.currentRegistryNumber == 9) {
         this->AddressRegistry_3200();
     }
-    if (this->_currentRegistryNumber == 10) {
+    if (this->_data.currentRegistryNumber == 10) {
         this->AddressRegistry_3300();
     }
-    if (this->_currentRegistryNumber == 11) {
+    if (this->_data.currentRegistryNumber == 11) {
         this->AddressRegistry_330A();
     }
-    if (this->_currentRegistryNumber == 12) {
+    if (this->_data.currentRegistryNumber == 12) {
         this->AddressRegistry_3310();
     }
-    if (this->_currentRegistryNumber == 13) {
+    if (this->_data.currentRegistryNumber == 13) {
         this->AddressRegistry_331B();
     }
-    if (this->_currentRegistryNumber == 14) {
+    if (this->_data.currentRegistryNumber == 14) {
         this->readManualCoil();
     }
-    if (this->_currentRegistryNumber == 15) {
+    if (this->_data.currentRegistryNumber == 15) {
         this->readLoadTestAndForceLoadCoil();
+    }
+    if (this->_data.currentRegistryNumber == 16) {
+        this->AddressRegistry_9013();
     }
 
     // better not use modulo, because after overlow it will start reading in incorrect order
-    this->_currentRegistryNumber++;
-    if (this->_currentRegistryNumber >= 15)
+    this->_data.currentRegistryNumber++;
+    if (this->_data.currentRegistryNumber > 16)
     {
-        this->_currentRegistryNumber = 0;
+        this->_data.currentRegistryNumber = 0;
         this->_data.canSend = true;
     }
 }
@@ -486,5 +489,35 @@ void TracerController::AddressRegistry_331B()
     else
     {
         DebugPrintln("Read register 0x331B failed!");
+    }
+}
+
+void TracerController::AddressRegistry_9013()
+{
+    this->_data.settingParameters.error = "INDO";
+
+    this->_result = this->_node.readHoldingRegisters (0x9013, 3);
+
+    if (this->_result == this->_node.ku8MBSuccess)
+    {
+        this->_data.settingParameters.realTimeClock = this->_node.getResponseBuffer(0x00);
+        DebugPrint("RTC: ");
+        DebugPrintln(this->_data.settingParameters.realTimeClock);
+
+
+        this->_data.settingParameters.realTimeClock2 = this->_node.getResponseBuffer(0x01);
+        DebugPrint("RTC2: ");
+        DebugPrintln(this->_data.settingParameters.realTimeClock2);
+
+        this->_data.settingParameters.realTimeClock3 = this->_node.getResponseBuffer(0x02);
+        DebugPrint("RTC3: ");
+        DebugPrintln(this->_data.settingParameters.realTimeClock3);
+
+        this->_data.settingParameters.error = "OK";
+    }
+    else
+    {
+        DebugPrintln("Read register 0x9013 failed!");
+        this->_data.settingParameters.error = "ERRO";
     }
 }

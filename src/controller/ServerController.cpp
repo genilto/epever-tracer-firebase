@@ -134,7 +134,12 @@ void ServerController::getRealtimeStatus()
     this->_server.send(200, "application/json",
                        "{\"batteryStatus\":" + String(this->_tracerData->realtimeStatus.batteryStatus) +
                            ", \"chargeEquipmentStatus\":" + String(this->_tracerData->realtimeStatus.chargeEquipmentStatus) +
-                           ", \"dischargeEquipmentStatus\":" + String(this->_tracerData->realtimeStatus.dischargeEquipmentStatus) + "}");
+                           ", \"dischargeEquipmentStatus\":" + String(this->_tracerData->realtimeStatus.dischargeEquipmentStatus) +
+                           ", \"currentRegistryNumber\":" + String(this->_tracerData->currentRegistryNumber) +
+                           ", \"realTimeClock\":" + String(this->_tracerData->settingParameters.realTimeClock) + 
+                           ", \"realTimeClock2\":" + String(this->_tracerData->settingParameters.realTimeClock2) + 
+                           ", \"realTimeClock3\":" + String(this->_tracerData->settingParameters.realTimeClock3) + 
+                           ", \"error\":\"" + String(this->_tracerData->settingParameters.error) + "\"}");
 }
 
 void ServerController::getStatisticalData()
