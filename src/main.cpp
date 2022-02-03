@@ -15,6 +15,7 @@ OTAUpdateController OTAUpdate;
 TracerController tracer;
 ServerController server( *tracer.getData() );
 FirebaseController firebase( *tracer.getData() );
+Timer errorTimer;
 //MqttController mqttController;
 
 void setup()
@@ -41,6 +42,7 @@ void setup()
 
     // Init Firebase
     firebase.begin();
+    errorTimer.setDelayTime(600000); // 10 minutos
 
     DebugPrintln("Setup OK!");
     DebugPrintln("----------------------------");
@@ -54,7 +56,38 @@ void loop()
     OTAUpdate.handle();
     tracer.update();
     server.handle();
-    firebase.update();
+    
+    // Caso não esteja enviando os dados a mais de 10 minutos
+    if (firebase.update()) 
+    {
+        errorTimer.reset();
+    }
+    else
+    {
+        //int atual = digitalRead(D3);
+        digitalWrite(D3, 0);
+        delay(50);
+        digitalWrite(D3, 1);
+        delay(50);
+        digitalWrite(D3, 0);
+        delay(50);
+        digitalWrite(D3, 1);
+        delay(500);
+        digitalWrite(D3, 0);
+        delay(50);
+        digitalWrite(D3, 1);
+        delay(50);
+        digitalWrite(D3, 0);
+        delay(50);
+        digitalWrite(D3, 1);
+        delay(500);
+        //digitalWrite(D3, atual);
+    }
+    // Reseta o esp
+    if (errorTimer.expired()) {
+       ESP.restart();
+    }
+
     //mqttController.loop();
     delay(100);
 }

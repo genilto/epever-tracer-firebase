@@ -27,7 +27,7 @@ class FirebaseController {
   public:
     FirebaseController(TracerData &_tracerData);
     void begin();
-    void update();
+    bool update();
 };
 
 #endif
