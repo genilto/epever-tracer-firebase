@@ -40,6 +40,15 @@ TracerData *TracerController::getData()
     return &this->_data;
 }
 
+void TracerController::updateCurrentRegistryNumber () {
+    this->_data.currentRegistryNumber++;
+    if (this->_data.currentRegistryNumber > 16)
+    {
+        this->_data.currentRegistryNumber = 0;
+        this->_data.canSend = true;
+    }
+}
+
 void TracerController::updateNextRegistryEntry()
 {
     if (this->_data.currentRegistryNumber == 0) {
@@ -94,18 +103,17 @@ void TracerController::updateNextRegistryEntry()
         this->AddressRegistry_9013();
     }
 
-    // better not use modulo, because after overlow it will start reading in incorrect order
-    this->_data.currentRegistryNumber++;
-    if (this->_data.currentRegistryNumber > 16)
-    {
-        this->_data.currentRegistryNumber = 0;
-        this->_data.canSend = true;
-    }
+    this->updateCurrentRegistryNumber();
 }
 
 // reads manual control state
 void TracerController::readManualCoil()
 {
+    if (this->_data.switchValues.read) {
+        this->updateCurrentRegistryNumber();
+        return;
+    }
+    
     DebugPrint("Reading coil 0x02.. ");
     delay(10);
 
@@ -127,6 +135,11 @@ void TracerController::readManualCoil()
 // reads Load Enable Override coil
 void TracerController::readLoadTestAndForceLoadCoil()
 {
+    if (this->_data.switchValues.read) {
+        this->updateCurrentRegistryNumber();
+        return;
+    }
+
     DebugPrint("Reading coil 0x05 & 0x06.. ");
     delay(10);
 
@@ -141,6 +154,8 @@ void TracerController::readLoadTestAndForceLoadCoil()
         this->_data.switchValues.forceLoad = (this->_node.getResponseBuffer(0x01) > 0);
         DebugPrint("Force Load On/Off: ");
         DebugPrintln(this->_data.switchValues.forceLoad);
+
+        this->_data.switchValues.read = true;
     }
     else
     {
@@ -150,6 +165,11 @@ void TracerController::readLoadTestAndForceLoadCoil()
 
 void TracerController::AddressRegistry_2000()
 {
+    if (this->_data.discreteInput.read) {
+        this->updateCurrentRegistryNumber();
+        return;
+    }
+
     this->_result = this->_node.readDiscreteInputs(0x2000, 1);
 
     if (this->_result == this->_node.ku8MBSuccess)
@@ -166,6 +186,11 @@ void TracerController::AddressRegistry_2000()
 
 void TracerController::AddressRegistry_200C()
 {
+    if (this->_data.discreteInput.read) {
+        this->updateCurrentRegistryNumber();
+        return;
+    }
+
     this->_result = this->_node.readDiscreteInputs(0x200C, 1);
 
     if (this->_result == this->_node.ku8MBSuccess)
@@ -173,6 +198,8 @@ void TracerController::AddressRegistry_200C()
         this->_data.discreteInput.dayNight = this->_node.getResponseBuffer(0x00);
         DebugPrint("Day (0) or Night (1): ");
         DebugPrintln(this->_data.discreteInput.dayNight);
+
+        this->_data.discreteInput.read = true;
     }
     else
     {
@@ -182,6 +209,11 @@ void TracerController::AddressRegistry_200C()
 
 void TracerController::AddressRegistry_3000()
 {
+    if (this->_data.ratedData.read) {
+        this->updateCurrentRegistryNumber();
+        return;
+    }
+
     this->_result = this->_node.readInputRegisters(0x3000, 9);
 
     if (this->_result == this->_node.ku8MBSuccess)
@@ -222,6 +254,11 @@ void TracerController::AddressRegistry_3000()
 
 void TracerController::AddressRegistry_300E()
 {
+    if (this->_data.ratedData.read) {
+        this->updateCurrentRegistryNumber();
+        return;
+    }
+
     this->_result = this->_node.readInputRegisters(0x300E, 1);
 
     if (this->_result == this->_node.ku8MBSuccess)
@@ -229,6 +266,8 @@ void TracerController::AddressRegistry_300E()
         this->_data.ratedData.loadCurrent = this->_node.getResponseBuffer(0x00) / 100.0f;
         DebugPrint("Load Current: ");
         DebugPrintln(this->_data.ratedData.loadCurrent);
+
+        this->_data.ratedData.read = true;
     }
     else
     {
@@ -494,12 +533,40 @@ void TracerController::AddressRegistry_331B()
 
 void TracerController::AddressRegistry_9013()
 {
-    this->_data.settingParameters.error = "INDO";
-
     this->_result = this->_node.readHoldingRegisters (0x9013, 3);
 
     if (this->_result == this->_node.ku8MBSuccess)
     {
+        Rtc rtc;
+        memset(rtc.buf,0,sizeof(rtc.buf));
+
+        rtc.buf[0]  = this->_node.getResponseBuffer(0x00);
+        rtc.buf[1]  = this->_node.getResponseBuffer(0x01);
+        rtc.buf[2]  = this->_node.getResponseBuffer(0x02);
+
+        sprintf(this->_data.settingParameters.realTimeClock, "20%02d-%02d-%02d %02d:%02d:%02dZ-3",
+            rtc.r.y, rtc.r.M, rtc.r.d, rtc.r.h, rtc.r.m, rtc.r.s
+        );
+
+        DebugPrint("RTC: ");
+        DebugPrintln(this->_data.settingParameters.realTimeClock);
+        /*
+        tm t = {0};
+        t.tm_sec = rtc.r.s;
+        t.tm_min = rtc.r.m;
+        t.tm_hour = rtc.r.h;
+        t.tm_mday = rtc.r.d;
+        t.tm_mon = (rtc.r.M) - 1; // 2-1, not 2!
+        t.tm_year = (2000 + rtc.r.y) - 1900; // 2022-1900, not 1990!
+        t.tm_isdst = -1;
+
+        time_t time = mktime(&t);
+        this->_data.settingParameters.realTimeClockTimestamp = time;
+
+        DebugPrint("RTC Timestamp: ");
+        DebugPrintln(this->_data.settingParameters.realTimeClockTimestamp);*/
+
+        /*
         this->_data.settingParameters.realTimeClock = this->_node.getResponseBuffer(0x00);
         DebugPrint("RTC: ");
         DebugPrintln(this->_data.settingParameters.realTimeClock);
@@ -511,13 +578,10 @@ void TracerController::AddressRegistry_9013()
 
         this->_data.settingParameters.realTimeClock3 = this->_node.getResponseBuffer(0x02);
         DebugPrint("RTC3: ");
-        DebugPrintln(this->_data.settingParameters.realTimeClock3);
-
-        this->_data.settingParameters.error = "OK";
+        DebugPrintln(this->_data.settingParameters.realTimeClock3);*/
     }
     else
     {
         DebugPrintln("Read register 0x9013 failed!");
-        this->_data.settingParameters.error = "ERRO";
     }
 }

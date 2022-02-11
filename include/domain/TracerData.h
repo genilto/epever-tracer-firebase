@@ -6,7 +6,6 @@
 //rated data - input register (16 bit word readonly)
 struct RatedData
 {
-    bool success;
     float pvVoltage;
     float pvCurrent;
     int16_t pvPower;
@@ -15,6 +14,7 @@ struct RatedData
     int16_t batteryPower;
     uint8_t chargingMode; //0000H Connect/disconnect, 0001H PWM, 0002H MPPT
     float loadCurrent;
+    bool read = false;
 };
 
 //realtime data - input register (16 bit word readonly)
@@ -82,9 +82,8 @@ struct SettingParameters
     float lowVoltageReconnect;
     float underVoltageRecover;
     float lowVoltageDisconnect;
-    uint16_t realTimeClock;
-    uint16_t realTimeClock2;
-    uint16_t realTimeClock3;
+    char realTimeClock[256];
+    //int realTimeClockTimestamp;
     int equalisationChargingCycle;
     float batteryTemperatureWarningUpperLimit;
     float batteryTemperatureWarningLowerLimit;
@@ -121,7 +120,7 @@ struct SettingParameters
     int dischargingPercentage;         //$
     int chargingPercentage;            //%
     bool batteryManagementMode;        //0=voltComp, 1=SoC
-    String error;
+    bool read = false;
 };
 
 //coil / switch values - coils (single bit read-write)
@@ -130,6 +129,7 @@ struct SwitchValues
     bool manualControl;
     bool loadTest;
     bool forceLoad;
+    bool read = false;
 };
 
 //discrete_input - discretes input (single bit readonly)
@@ -137,6 +137,20 @@ struct DiscreteInput
 {
     bool overTemp;
     bool dayNight;
+    bool read = false;
+};
+
+// clock
+union Rtc {
+    struct {
+        uint8_t  s;
+        uint8_t  m;
+        uint8_t  h;
+        uint8_t  d;
+        uint8_t  M;
+        uint8_t  y;  
+        } r;
+        uint16_t buf[3];
 };
 
 struct TracerData

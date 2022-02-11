@@ -43,7 +43,9 @@ private:
     void readManualCoil();
     void readLoadTestAndForceLoadCoil();
 
+    void updateCurrentRegistryNumber();
     void updateNextRegistryEntry();
+    
 
 public:
     TracerController();

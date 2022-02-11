@@ -89,6 +89,8 @@ bool FirebaseController::update()
     content.set(mapPath + "batteryCurrent/doubleValue", this->_tracerData->statisticalParameters.batteryCurrent);
     content.set(mapPath + "batteryTemp/doubleValue", this->_tracerData->statisticalParameters.batteryTemp);
     content.set(mapPath + "ambientTemp/doubleValue", this->_tracerData->statisticalParameters.ambientTemp);
+
+    content.set("fields/localTime/stringValue", this->_tracerData->settingParameters.realTimeClock);
     /*
     DebugPrint("Create a document... ");
 

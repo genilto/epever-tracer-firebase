@@ -131,15 +131,29 @@ void ServerController::getRealtimeData()
 
 void ServerController::getRealtimeStatus()
 {
+    /*
+    char buf[256];
+    sprintf(buf, "20%02d-%02d-%02d %02d:%02d:%02d",
+        this->_tracerData->rtc.r.y, 
+        this->_tracerData->rtc.r.M, 
+        this->_tracerData->rtc.r.d, 
+        this->_tracerData->rtc.r.h, 
+        this->_tracerData->rtc.r.m, 
+        this->_tracerData->rtc.r.s
+    );
+
+    DebugPrint("RTC: ");
+    DebugPrintln(buf);
+    */
     this->_server.send(200, "application/json",
                        "{\"batteryStatus\":" + String(this->_tracerData->realtimeStatus.batteryStatus) +
                            ", \"chargeEquipmentStatus\":" + String(this->_tracerData->realtimeStatus.chargeEquipmentStatus) +
                            ", \"dischargeEquipmentStatus\":" + String(this->_tracerData->realtimeStatus.dischargeEquipmentStatus) +
                            ", \"currentRegistryNumber\":" + String(this->_tracerData->currentRegistryNumber) +
-                           ", \"realTimeClock\":" + String(this->_tracerData->settingParameters.realTimeClock) + 
-                           ", \"realTimeClock2\":" + String(this->_tracerData->settingParameters.realTimeClock2) + 
-                           ", \"realTimeClock3\":" + String(this->_tracerData->settingParameters.realTimeClock3) + 
-                           ", \"error\":\"" + String(this->_tracerData->settingParameters.error) + "\"}");
+                           ", \"realTimeClock\":\"" + this->_tracerData->settingParameters.realTimeClock + "\"" +
+                           //", \"realTimeClockTimestamp\":\"" + this->_tracerData->settingParameters.realTimeClockTimestamp + "\""
+                           //", \"error\":\"" + String(this->_tracerData->settingParameters.error) + 
+                           "}");
 }
 
 void ServerController::getStatisticalData()
