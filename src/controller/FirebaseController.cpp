@@ -39,8 +39,7 @@ bool FirebaseController::update()
     {
         this->_canSend = true;
     }
-    if (!this->_tracerData->canSend || !this->_canSend) 
-    //if (!this->_canSend)
+    if (!this->_tracerData->everythingRead || !this->_canSend) 
     {
         return true;
     }
@@ -119,7 +118,7 @@ bool FirebaseController::update()
             ""))
     {
         DebugPrintf("ok\n%s\n\n", this->_fbdo.payload().c_str());
-        this->_tracerData->canSend = false;
+        this->_tracerData->everythingRead = false;
         this->_canSend = false;
 
         digitalWrite(D3, 0);

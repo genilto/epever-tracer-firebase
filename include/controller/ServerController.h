@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
-#include "domain/TracerData.h"
+#include "TracerData.h"
 #include "debug.h"
 
 #ifndef ServerController_h

@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <Firebase_ESP_Client.h>
-#include "domain/TracerData.h"
+#include "TracerData.h"
 #include "debug.h"
-#include "Timer.h"
+#include "SimpleTimer.h"
 
 #ifndef FirebaseController_h
 #define FirebaseController_h
@@ -13,7 +13,7 @@
 class FirebaseController {
   private:
     TracerData *_tracerData;
-    Timer _timer;
+    SimpleTimer _timer;
     int _delayTime = 60000;
     bool _canSend = false;
 

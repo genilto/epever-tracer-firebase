@@ -2,20 +2,20 @@
 #include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 
-#include "domain/TracerData.h"
-#include "debug.h"
+#include "TracerData.h"
+#include "EpeverTracer.h"
 
+#include "debug.h"
 #include "controller/OTAUpdateController.h"
-#include "controller/TracerController.h"
 #include "controller/ServerController.h"
 #include "controller/FirebaseController.h"
 //#include "controller/MqttController.h"
 
 OTAUpdateController OTAUpdate;
-TracerController tracer;
+EpeverTracer tracer;
 ServerController server( *tracer.getData() );
 FirebaseController firebase( *tracer.getData() );
-Timer errorTimer;
+SimpleTimer errorTimer;
 //MqttController mqttController;
 
 void setup()
