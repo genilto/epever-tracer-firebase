@@ -64,7 +64,6 @@ void loop()
     }
     else
     {
-        //int atual = digitalRead(D3);
         digitalWrite(D3, 0);
         delay(50);
         digitalWrite(D3, 1);
@@ -80,8 +79,7 @@ void loop()
         digitalWrite(D3, 0);
         delay(50);
         digitalWrite(D3, 1);
-        delay(500);
-        //digitalWrite(D3, atual);
+        delay(1000);
     }
     // Reseta o esp
     if (errorTimer.expired()) {
